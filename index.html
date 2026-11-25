@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Busca Ativa Escolar — Envio de Mensagens WhatsApp</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #0f766e;
+      --primary-hover: #115e59;
+      --whats: #16a34a;
+      --whats-hover: #15803d;
+      --warn: #d97706;
+      --warn-bg: #fef3c7;
+      --danger: #dc2626;
+      --danger-bg: #fee2e2;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); line-height: 1.5; padding-bottom: 48px; }
+
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 18px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    header h1 { font-size: 1.25rem; }
+    header p { font-size: 0.85rem; opacity: 0.9; }
+
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .container { max-width: 1180px; margin: 20px auto; padding: 0 16px; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .stat-card {
+      background: var(--surface);
+      padding: 15px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+    .stat-card span { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; font-weight: 700; }
+    .stat-card strong { display: block; font-size: 1.55rem; margin-top: 4px; }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; justify-content: space-between; align-items: center; }
+    .tab-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tab-btn {
+      padding: 9px 16px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .filters {
+      background: var(--surface);
+      padding: 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .field label { display: block; font-size: 0.78rem; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+    .field input, .field select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: #fff;
+    }
+
+    .list { display: flex; flex-direction: column; gap: 14px; }
+    .student-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .student-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+    .student-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .badge { font-size: 0.75rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #e2e8f0; }
+    .badge-turma { background: var(--primary); color: #fff; }
+    .badge-falta { background: var(--danger-bg); color: var(--danger); }
+    .badge-enviado { background: #dcfce7; color: #166534; }
+    .badge-fixo { background: var(--warn-bg); color: var(--warn); }
+
+    .msg-preview {
+      background: #f0fdf4;
+      border-left: 4px solid var(--whats);
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      white-space: pre-line;
+      color: #14532d;
+    }
+
+    .contacts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 10px;
+    }
+    .contact-box {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .contact-top { display: flex; justify-content: space-between; align-items: center; font-size: 0.88rem; }
+
+    .btn {
+      border: none;
+      border-radius: 7px;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-whats { background: var(--whats); color: #fff; width: 100%; }
+    .btn-whats:hover { background: var(--whats-hover); }
+    .btn-whats.enviado { background: #64748b; }
+    .btn-white { background: #fff; color: var(--primary); }
+    .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
+    .btn-danger-outline { background: #fff; border: 1px solid #fecaca; color: var(--danger); }
+    .btn-primary { background: var(--primary); color: #fff; }
+
+    .table-wrap { overflow-x: auto; background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    th { background: #f8fafc; color: var(--muted); }
+
+    .empty-state {
+      text-align: center;
+      padding: 38px 20px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px dashed var(--border);
+      color: var(--muted);
+    }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.55);
+      display: none; align-items: center; justify-content: center; padding: 16px; z-index: 100;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: var(--radius); padding: 20px;
+      width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 14px;
+    }
+
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; background: #0f172a; color: #fff;
+      padding: 12px 18px; border-radius: 8px; font-size: 0.88rem; display: none; z-index: 200;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Busca Ativa Escolar — Disparos WhatsApp</h1>
+    <p>Envio automatizado das faltas semanais registradas na aba FALTANTES</p>
+  </div>
+  <div class="header-actions">
+    <a href="lancar-faltas.html" class="btn btn-white">+ Lançar Faltas da Semana</a>
+    <button class="btn btn-outline" onclick="carregarDados()">Atualizar</button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="stats">
+    <div class="stat-card"><span>Faltantes na Semana</span><strong id="statTotal" style="color:var(--danger)">—</strong></div>
+    <div class="stat-card"><span>Pendentes de Envio</span><strong id="statPendentes" style="color:var(--warn)">—</strong></div>
+    <div class="stat-card"><span>Já Notificados</span><strong id="statEnviados" style="color:var(--whats)">—</strong></div>
+    <div class="stat-card"><span>Sem Telefone</span><strong id="statSemTel">—</strong></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab-group">
+      <button class="tab-btn active" onclick="trocarAba('faltantes', this)">Faltantes da Semana</button>
+      <button class="tab-btn" onclick="trocarAba('historico', this)">Histórico de Envios</button>
+    </div>
+    <button class="btn btn-danger-outline" onclick="confirmarLimparSemana()">Limpar Aba FALTANTES (Nova Semana)</button>
+  </div>
+
+  <!-- ABA 1: FALTANTES -->
+  <section id="panel-faltantes" class="panel active">
+    <div class="filters">
+      <div class="field">
+        <label for="filtroTurma">Turma</label>
+        <select id="filtroTurma" onchange="renderizarFaltantes()">
+          <option value="">Todas as Turmas</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="filtroBusca">Buscar Aluno</label>
+        <input type="text" id="filtroBusca" placeholder="Digite o nome do aluno..." oninput="renderizarFaltantes()" />
+      </div>
+      <div class="field">
+        <label for="filtroStatus">Status de Envio</label>
+        <select id="filtroStatus" onchange="renderizarFaltantes()">
+          <option value="">Todos</option>
+          <option value="PENDENTE">Somente Pendentes</option>
+          <option value="ENVIADO">Somente Enviados</option>
+          <option value="SEM_TEL">Sem Telefone</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="listaFaltantes" class="list">
+      <div class="empty-state">Carregando dados da planilha...</div>
+    </div>
+  </section>
+
+  <!-- ABA 2: HISTÓRICO -->
+  <section id="panel-historico" class="panel">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Data/Hora</th>
+            <th>Turma</th>
+            <th>Aluno</th>
+            <th>Faltas</th>
+            <th>Parentesco</th>
+            <th>Telefone</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaHistorico">
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);">Nenhum envio registrado ainda.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<!-- MODAL EDITAR TELEFONE -->
+<div id="modalTel" class="modal-backdrop">
+  <div class="modal">
+    <h3>Cadastrar / Corrigir Telefone 1</h3>
+    <p id="modalAlunoNome" style="font-size:0.9rem; font-weight:700; color:var(--primary);"></p>
+    <input type="hidden" id="modalLinhaBanco" />
+    <input type="hidden" id="modalLinhaFaltantes" />
+    <div class="field">
+      <label for="modalTipo">Parentesco (Ex: Mãe, Pai, Responsável)</label>
+      <input type="text" id="modalTipo" value="Responsável" />
+    </div>
+    <div class="field">
+      <label for="modalNumero">Telefone com DDD (somente números)</label>
+      <input type="tel" id="modalNumero" placeholder="17999999999" />
+    </div>
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarTelefone()">Salvar na Planilha</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  // COLE AQUI A MESMA URL DO SEU APP DA WEB (GOOGLE APPS SCRIPT)
+  const API_URL = 'COLE_AQUI_A_URL_DO_SEU_APPS_SCRIPT_EXEC';
+
+  let estado = { turmas: [], alunos: [], faltantes: [], historico: [] };
+
+  /**
+   * Equivalente à fórmula: SEERRO(ESQUERDA(B3; PROCURAR(" "; B3) - 1); B3)
+   */
+  function obterPrimeiroNome(nomeCompleto) {
+    const limpo = String(nomeCompleto || '').trim();
+    const idx = limpo.indexOf(' ');
+    return idx > 0 ? limpo.substring(0, idx) : limpo;
+  }
+
+  /**
+   * Monta exatamente a mensagem solicitada
+   */
+  function montarMensagem(nomeCompleto, faltas) {
+    const primeiroNome = obterPrimeiroNome(nomeCompleto);
+    return `Olá, responsável de ${nomeCompleto}, tudo bem? \n\n⚠️ Passando para comunicar que ${primeiroNome} apresentou ${faltas} faltas nessa semana. \n\n❣️ Reforçamos que as faltas comprometem a aprendizagem.`;
+  }
+
+  function trocarAba(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  async function carregarDados() {
+    const container = document.getElementById('listaFaltantes');
+    container.innerHTML = '<div class="empty-state">Sincronizando com o Google Planilhas...</div>';
+
+    if (API_URL.includes('COLE_AQUI')) {
+      container.innerHTML = '<div class="empty-state">Configure a constante <strong>API_URL</strong> no arquivo index.html com o link do seu Apps Script.</div>';
+      return;
+    }
+
+    try {
+      const res = await fetch(API_URL + '?action=getDados');
+      const data = await res.json();
+      if (data.status !== 'ok') throw new Error(data.mensagem);
+
+      estado = data;
+      preencherTurmas();
+      atualizarEstatisticas();
+      renderizarFaltantes();
+      renderizarHistorico();
+    } catch (err) {
+      container.innerHTML = `<div class="empty-state" style="color:var(--danger)">Erro ao carregar dados: ${err.message}</div>`;
+    }
+  }
+
+  function preencherTurmas() {
+    const select = document.getElementById('filtroTurma');
+    const atual = select.value;
+    select.innerHTML = '<option value="">Todas as Turmas</option>';
+    estado.turmas.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = 'Turma ' + t;
+      select.appendChild(opt);
+    });
+    select.value = atual;
+  }
+
+  function alunoFoiNotificado(f) {
+    return f.contatos.some(c => String(c.statusEnvio || '').toUpperCase().startsWith('ENVIADO'));
+  }
+
+  function atualizarEstatisticas() {
+    const total = estado.faltantes.length;
+    const enviados = estado.faltantes.filter(alunoFoiNotificado).length;
+    const semTel = estado.faltantes.filter(f => f.contatos.length === 0).length;
+    const pendentes = total - enviados;
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statPendentes').textContent = pendentes;
+    document.getElementById('statEnviados').textContent = enviados;
+    document.getElementById('statSemTel').textContent = semTel;
+  }
+
+  function renderizarFaltantes() {
+    const turma = document.getElementById('filtroTurma').value;
+    const busca = document.getElementById('filtroBusca').value.toLowerCase().trim();
+    const status = document.getElementById('filtroStatus').value;
+
+    const filtrados = estado.faltantes.filter(f => {
+      if (turma && f.turma !== turma) return false;
+      if (busca && !f.nome.toLowerCase().includes(busca)) return false;
+      if (status === 'PENDENTE' && alunoFoiNotificado(f)) return false;
+      if (status === 'ENVIADO' && !alunoFoiNotificado(f)) return false;
+      if (status === 'SEM_TEL' && f.contatos.length > 0) return false;
+      return true;
+    });
+
+    const container = document.getElementById('listaFaltantes');
+    if (filtrados.length === 0) {
+      container.innerHTML = '<div class="empty-state">Nenhum aluno faltante encontrado com os filtros atuais.</div>';
+      return;
+    }
+
+    container.innerHTML = filtrados.map((f, idxF) => {
+      const mensagem = montarMensagem(f.nome, f.faltas);
+      const jaEnviadoGeral = alunoFoiNotificado(f);
+
+      const contatosHtml = f.contatos.length > 0
+        ? f.contatos.map((c, idxC) => {
+            const enviado = String(c.statusEnvio || '').toUpperCase().startsWith('ENVIADO');
+            return `
+              <div class="contact-box">
+                <div class="contact-top">
+                  <strong>${c.tipo}</strong>
+                  <span>
+                    ${c.telefoneOriginal}
+                    ${c.ehFixo ? '<span class="badge badge-fixo">Fixo</span>' : ''}
+                  </span>
+                </div>
+                <button
+                  class="btn btn-whats ${enviado ? 'enviado' : ''}"
+                  onclick="dispararWhats(${f.linhaFaltantes}, ${c.slot})">
+                  ${enviado ? '✓ ' + c.statusEnvio + ' (Reenviar)' : 'Enviar WhatsApp'}
+                </button>
+              </div>
+            `;
+          }).join('')
+        : `<div class="contact-box" style="border-style:dashed;">
+            <span style="color:var(--warn); font-size:0.85rem;">Sem telefone cadastrado.</span>
+            <button class="btn btn-outline" onclick="abrirModal(${f.linhaBanco || 0}, ${f.linhaFaltantes})">+ Cadastrar Telefone</button>
+           </div>`;
+
+      return `
+        <div class="student-card">
+          <div class="student-header">
+            <div class="student-title">
+              <span class="badge badge-turma">${f.turma}</span>
+              <strong>${f.nome}</strong>
+              <span class="badge badge-falta">${f.faltas} faltas na semana</span>
+              ${f.dataRegistro ? `<span class="badge">📅 ${f.dataRegistro}</span>` : ''}
+              ${jaEnviadoGeral ? `<span class="badge badge-enviado">Notificado</span>` : ''}
+            </div>
+            <button class="btn btn-outline" style="font-size:0.78rem;" onclick="abrirModal(${f.linhaBanco || 0}, ${f.linhaFaltantes})">Editar Tel 1</button>
+          </div>
+
+          <div class="msg-preview">${mensagem}</div>
+
+          <div class="contacts-grid">${contatosHtml}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function dispararWhats(linhaFaltantes, slot) {
+    const aluno = estado.faltantes.find(f => f.linhaFaltantes === linhaFaltantes);
+    if (!aluno) return;
+
+    const contato = aluno.contatos.find(c => c.slot === slot);
+    if (!contato) return;
+
+    const mensagem = montarMensagem(aluno.nome, aluno.faltas);
+    const urlWhats = `https://wa.me/${contato.telefoneWhats}?text=${encodeURIComponent(mensagem)}`;
+    window.open(urlWhats, '_blank');
+
+    // Atualiza visualmente imediatamente e grava na planilha
+    const agoraCurto = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    contato.statusEnvio = `ENVIADO (${agoraCurto})`;
+    atualizarEstatisticas();
+    renderizarFaltantes();
+
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: 'registrarEnvio',
+        linhaFaltantes: aluno.linhaFaltantes,
+        slot: contato.slot,
+        turma: aluno.turma,
+        aluno: aluno.nome,
+        faltas: aluno.faltas,
+        contatoTipo: contato.tipo,
+        telefone: contato.telefoneWhats,
+        mensagem: mensagem
+      })
+    }).then(() => {
+      mostrarToast(`Envio registrado para ${aluno.nome}.`);
+      estado.historico.unshift({
+        dataHora: new Date().toLocaleString('pt-BR'),
+        turma: aluno.turma,
+        aluno: aluno.nome,
+        faltas: aluno.faltas,
+        contatoTipo: contato.tipo,
+        telefone: contato.telefoneWhats
+      });
+      renderizarHistorico();
+    }).catch(() => {
+      mostrarToast('WhatsApp aberto (não foi possível atualizar a planilha agora).');
+    });
+  }
+
+  function renderizarHistorico() {
+    const tbody = document.getElementById('tabelaHistorico');
+    if (!estado.historico.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);">Nenhum envio registrado ainda.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = estado.historico.map(h => `
+      <tr>
+        <td>${h.dataHora}</td>
+        <td><strong>${h.turma}</strong></td>
+        <td>${h.aluno}</td>
+        <td><span class="badge badge-falta">${h.faltas}</span></td>
+        <td>${h.contatoTipo}</td>
+        <td>${h.telefone}</td>
+      </tr>
+    `).join('');
+  }
+
+  function abrirModal(linhaBanco, linhaFaltantes) {
+    const aluno = estado.faltantes.find(f => f.linhaFaltantes === linhaFaltantes);
+    document.getElementById('modalLinhaBanco').value = linhaBanco || '';
+    document.getElementById('modalLinhaFaltantes').value = linhaFaltantes || '';
+    document.getElementById('modalAlunoNome').textContent = aluno ? aluno.nome : '';
+    document.getElementById('modalNumero').value = '';
+    document.getElementById('modalTel').classList.add('open');
+  }
+
+  function fecharModal() {
+    document.getElementById('modalTel').classList.remove('open');
+  }
+
+  async function salvarTelefone() {
+    const linhaBanco = document.getElementById('modalLinhaBanco').value;
+    const linhaFaltantes = document.getElementById('modalLinhaFaltantes').value;
+    const tipoContato = document.getElementById('modalTipo').value.trim();
+    const telefone = document.getElementById('modalNumero').value.replace(/\D/g, '');
+
+    if (telefone.length < 10) {
+      alert('Informe o telefone com DDD (mínimo 10 dígitos).');
+      return;
+    }
+
+    try {
+      await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'atualizarTelefone', linhaBanco, linhaFaltantes, tipoContato, telefone })
+      });
+      fecharModal();
+      mostrarToast('Telefone atualizado na planilha!');
+      carregarDados();
+    } catch (err) {
+      alert('Erro ao salvar telefone: ' + err.message);
+    }
+  }
+
+  async function confirmarLimparSemana() {
+    const ok = confirm('Deseja limpar todos os alunos da aba FALTANTES para iniciar uma nova semana?\n\n(O histórico de envios na aba Historico_Envios será mantido.)');
+    if (!ok) return;
+
+    try {
+      await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'limparFaltantes' })
+      });
+      mostrarToast('Aba FALTANTES limpa com sucesso!');
+      carregarDados();
+    } catch (err) {
+      alert('Erro ao limpar: ' + err.message);
+    }
+  }
+
+  function mostrarToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 3200);
+  }
+
+  carregarDados();
+</script>
+</body>
+</html>
