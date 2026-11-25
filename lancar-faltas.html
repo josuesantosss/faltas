@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lançamento de Faltas da Semana — Busca Ativa</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --primary: #0f766e;
+      --primary-hover: #115e59;
+      --accent: #2563eb;
+      --danger: #dc2626;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding-bottom: 90px; }
+
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 18px 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    header h1 { font-size: 1.25rem; }
+    header p { font-size: 0.85rem; opacity: 0.9; }
+
+    .header-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+    .date-box {
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.35);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .container { max-width: 1050px; margin: 20px auto; padding: 0 16px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .turmas-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .turma-pill {
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: var(--text);
+      transition: 0.15s;
+    }
+    .turma-pill:hover { border-color: var(--primary); color: var(--primary); }
+    .turma-pill.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .toolbar input, .toolbar select {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.92rem;
+      background: #fff;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { background: #f8fafc; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; }
+    tr.marcado { background: #fef3c7; }
+
+    .select-falta {
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      background: #fff;
+      min-width: 130px;
+    }
+    .select-falta.com-falta {
+      border-color: var(--danger);
+      color: var(--danger);
+      background: #fff5f5;
+    }
+
+    .badge {
+      font-size: 0.74rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      font-weight: 700;
+    }
+    .badge-ok { background: #dcfce7; color: #166534; }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-white { background: #fff; color: var(--primary); }
+    .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
+
+    /* Barra fixa inferior de salvamento */
+    .save-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #fff;
+      border-top: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
+      z-index: 50;
+    }
+
+    .empty { text-align: center; padding: 36px; color: var(--muted); }
+    .toast {
+      position: fixed; top: 20px; right: 20px; background: #0f172a; color: #fff;
+      padding: 12px 18px; border-radius: 8px; font-size: 0.9rem; display: none; z-index: 200;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Lançamento de Faltas da Semana</h1>
+    <p>Selecione a turma e indique os alunos com 3, 4 ou 5 faltas para registrar na aba FALTANTES</p>
+  </div>
+  <div class="header-actions">
+    <div class="date-box" id="boxDataHoje">📅 Carregando data...</div>
+    <a href="index.html" class="btn btn-white">Ir para Envio de Mensagens →</a>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Seleção de Turmas -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <strong>Selecione a Turma:</strong>
+      <select id="selectTurma" onchange="selecionarTurma(this.value)" style="padding:8px 12px; border-radius:8px; border:1px solid var(--border);">
+        <option value="">Carregando turmas...</option>
+      </select>
+    </div>
+    <div id="turmasPills" class="turmas-grid"></div>
+  </div>
+
+  <!-- Lista de Alunos da Turma -->
+  <div class="card">
+    <div class="toolbar">
+      <h2 id="tituloTurma" style="font-size:1.05rem;">Escolha uma turma acima</h2>
+      <input type="text" id="buscaAluno" placeholder="Filtrar aluno nesta turma..." oninput="renderizarTabela()" />
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:60px;">Nº</th>
+            <th>Nome Completo do Aluno</th>
+            <th style="width:140px;">Status Planilha</th>
+            <th style="width:170px;">Faltas na Semana</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela">
+          <tr><td colspan="4" class="empty">Carregando dados da planilha...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Barra fixa para salvar -->
+<div class="save-bar">
+  <div>
+    <strong id="contadorSelecionados">0 aluno(s)</strong> marcado(s) para envio à aba <code>FALTANTES</code>
+  </div>
+  <div style="display:flex; gap:10px;">
+    <button class="btn btn-outline" onclick="limparSelecaoLocal()">Limpar Seleção</button>
+    <button class="btn btn-primary" id="btnSalvar" onclick="salvarFaltas()" disabled>Salvar na Planilha</button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  // COLE AQUI A MESMA URL DO SEU APP DA WEB (GOOGLE APPS SCRIPT)
+  const API_URL = 'COLE_AQUI_A_URL_DO_SEU_APPS_SCRIPT_EXEC';
+
+  let estado = { turmas: [], alunos: [], faltantes: [] };
+  let turmaAtual = '';
+  // Guarda seleções feitas pelo usuário: { "TURMA|NOME": { turma, nome, faltas } }
+  let selecoes = {};
+  let dataHojeFormatada = '';
+
+  function exibirDataHoje() {
+    const hoje = new Date();
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const ano = hoje.getFullYear();
+    dataHojeFormatada = `${dia}/${mes}/${ano}`;
+
+    const diaSemana = hoje.toLocaleDateString('pt-BR', { weekday: 'long' });
+    const diaSemanaCap = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
+    document.getElementById('boxDataHoje').textContent = `📅 ${dataHojeFormatada} (${diaSemanaCap})`;
+  }
+
+  async function carregarDados() {
+    const tbody = document.getElementById('corpoTabela');
+    if (API_URL.includes('COLE_AQUI')) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty">Configure a constante <strong>API_URL</strong> no código com o link do Apps Script.</td></tr>';
+      return;
+    }
+
+    try {
+      const res = await fetch(API_URL + '?action=getDados');
+      const data = await res.json();
+      if (data.status !== 'ok') throw new Error(data.mensagem);
+
+      estado = data;
+      montarSeletorTurmas();
+
+      if (estado.turmas.length > 0 && !turmaAtual) {
+        selecionarTurma(estado.turmas[0]);
+      } else {
+        renderizarTabela();
+      }
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="4" class="empty" style="color:var(--danger)">Erro ao carregar: ${err.message}</td></tr>`;
+    }
+  }
+
+  function montarSeletorTurmas() {
+    const select = document.getElementById('selectTurma');
+    const pills = document.getElementById('turmasPills');
+
+    select.innerHTML = estado.turmas.map(t => `<option value="${t}">Turma ${t}</option>`).join('');
+    pills.innerHTML = estado.turmas.map(t =>
+      `<button class="turma-pill ${t === turmaAtual ? 'active' : ''}" onclick="selecionarTurma('${t}')">${t}</button>`
+    ).join('');
+  }
+
+  function selecionarTurma(turma) {
+    turmaAtual = turma;
+    document.getElementById('selectTurma').value = turma;
+    document.querySelectorAll('.turma-pill').forEach(p => {
+      p.classList.toggle('active', p.textContent === turma);
+    });
+    document.getElementById('tituloTurma').textContent = `Alunos Ativos — Turma ${turma}`;
+    renderizarTabela();
+  }
+
+  function renderizarTabela() {
+    const tbody = document.getElementById('corpoTabela');
+    const busca = document.getElementById('buscaAluno').value.toLowerCase().trim();
+
+    const alunosTurma = estado.alunos.filter(a =>
+      a.turma === turmaAtual &&
+      a.situacao === 'ATIVO' &&
+      (!busca || a.nome.toLowerCase().includes(busca))
+    );
+
+    if (alunosTurma.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty">Nenhum aluno ativo encontrado nesta turma.</td></tr>';
+      return;
+    }
+
+    // Verifica quem já está registrado na aba FALTANTES
+    const mapaJaSalvos = {};
+    estado.faltantes.forEach(f => {
+      mapaJaSalvos[f.nome.toUpperCase()] = f.faltas;
+    });
+
+    tbody.innerHTML = alunosTurma.map(a => {
+      const chave = `${a.turma}|${a.nome}`;
+      const valorSelecionado = selecoes[chave] ? String(selecoes[chave].faltas) : '';
+      const jaNaPlanilha = mapaJaSalvos[a.nome.toUpperCase()];
+
+      return `
+        <tr class="${valorSelecionado ? 'marcado' : ''}">
+          <td>${a.numero}</td>
+          <td><strong>${a.nome}</strong></td>
+          <td>
+            ${jaNaPlanilha
+              ? `<span class="badge badge-ok">Já salvo (${jaNaPlanilha} faltas)</span>`
+              : `<span class="badge">Sem registro</span>`}
+          </td>
+          <td>
+            <select
+              class="select-falta ${valorSelecionado ? 'com-falta' : ''}"
+              data-turma="${a.turma}"
+              data-nome="${a.nome.replace(/"/g, '&quot;')}"
+              onchange="alterarFalta(this)">
+              <option value="">— Selecionar —</option>
+              <option value="3" ${valorSelecionado === '3' ? 'selected' : ''}>3 faltas</option>
+              <option value="4" ${valorSelecionado === '4' ? 'selected' : ''}>4 faltas</option>
+              <option value="5" ${valorSelecionado === '5' ? 'selected' : ''}>5 faltas</option>
+            </select>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  function alterarFalta(selectEl) {
+    const turma = selectEl.dataset.turma;
+    const nome = selectEl.dataset.nome;
+    const faltas = selectEl.value;
+    const chave = `${turma}|${nome}`;
+
+    if (faltas) {
+      selecoes[chave] = { turma, nome, faltas: Number(faltas) };
+      selectEl.classList.add('com-falta');
+      selectEl.closest('tr').classList.add('marcado');
+    } else {
+      delete selecoes[chave];
+      selectEl.classList.remove('com-falta');
+      selectEl.closest('tr').classList.remove('marcado');
+    }
+
+    atualizarBarraSalvar();
+  }
+
+  function atualizarBarraSalvar() {
+    const qtd = Object.keys(selecoes).length;
+    document.getElementById('contadorSelecionados').textContent = `${qtd} aluno(s)`;
+    document.getElementById('btnSalvar').disabled = qtd === 0;
+  }
+
+  function limparSelecaoLocal() {
+    selecoes = {};
+    atualizarBarraSalvar();
+    renderizarTabela();
+  }
+
+  async function salvarFaltas() {
+    const registros = Object.values(selecoes);
+    if (registros.length === 0) return;
+
+    const btn = document.getElementById('btnSalvar');
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'salvarFaltas',
+          data: dataHojeFormatada,
+          registros: registros
+        })
+      });
+      const data = await res.json();
+      if (data.status !== 'ok') throw new Error(data.mensagem);
+
+      mostrarToast(data.mensagem);
+      selecoes = {};
+      atualizarBarraSalvar();
+      await carregarDados();
+    } catch (err) {
+      alert('Erro ao salvar faltas: ' + err.message);
+    } finally {
+      btn.textContent = 'Salvar na Planilha';
+      atualizarBarraSalvar();
+    }
+  }
+
+  function mostrarToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 3500);
+  }
+
+  exibirDataHoje();
+  carregarDados();
+</script>
+</body>
+</html>
