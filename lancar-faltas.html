@@ -105,9 +105,10 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       font-weight: 700;
-      font-size: 0.9rem;
+      font-size: 0.92rem;
       background: #fff;
-      min-width: 130px;
+      width: 76px;
+      text-align: center;
     }
     .select-falta.com-falta {
       border-color: var(--danger);
@@ -179,7 +180,6 @@
       .container { margin: 12px auto; padding: 0 12px; }
       .card { padding: 12px; margin-bottom: 12px; }
 
-      /* Turmas em carrossel horizontal para economizar espaço vertical */
       .turmas-grid {
         flex-wrap: nowrap;
         overflow-x: auto;
@@ -192,7 +192,6 @@
       #selectTurma, .toolbar input { width: 100%; font-size: 16px; min-height: 44px; }
       .toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
 
-      /* Transforma a tabela em cards verticais sem rolagem lateral */
       table, thead, tbody, tr, td { display: block; width: 100%; }
       thead { display: none; }
 
@@ -211,11 +210,7 @@
         background: #fef3c7;
         border-color: #f59e0b;
       }
-      tbody td {
-        padding: 0;
-        border: none;
-      }
-      /* Coluna 1: Nº da chamada */
+      tbody td { padding: 0; border: none; }
       tbody td:nth-child(1) {
         background: #e2e8f0;
         color: var(--text);
@@ -225,31 +220,17 @@
         border-radius: 6px;
         width: fit-content;
       }
-      /* Coluna 2: Nome do aluno */
-      tbody td:nth-child(2) {
-        font-size: 0.95rem;
-        line-height: 1.3;
-      }
-      /* Coluna 3: Status na planilha */
-      tbody td:nth-child(3) {
-        grid-column: 1 / -1;
-      }
-      /* Coluna 4: Dropdown de faltas em largura total */
-      tbody td:nth-child(4) {
-        grid-column: 1 / -1;
-      }
+      tbody td:nth-child(2) { font-size: 0.95rem; line-height: 1.3; }
+      tbody td:nth-child(3) { grid-column: 1 / -1; }
+      tbody td:nth-child(4) { grid-column: 1 / -1; text-align: left !important; }
       .select-falta {
         width: 100%;
         min-height: 44px;
         font-size: 16px;
         padding: 10px 12px;
       }
-      tbody td.empty {
-        grid-column: 1 / -1;
-        padding: 24px 12px;
-      }
+      tbody td.empty { grid-column: 1 / -1; padding: 24px 12px; }
 
-      /* Barra inferior fixa adaptada para o polegar e notch do iPhone */
       .save-bar {
         flex-direction: column;
         align-items: stretch;
@@ -270,7 +251,7 @@
 <header>
   <div>
     <h1>Lançamento de Faltas da Semana</h1>
-    <p>Selecione a turma e indique os alunos com 3, 4 ou 5 faltas para registrar na aba FALTANTES</p>
+    <p>Selecione a turma e indique os alunos com 2, 3, 4 ou 5 faltas para registrar na aba FALTANTES</p>
   </div>
   <div class="header-actions">
     <div class="date-box" id="boxDataHoje">📅 Carregando data...</div>
@@ -301,8 +282,8 @@
           <tr>
             <th style="width:60px;">Nº</th>
             <th>Nome Completo do Aluno</th>
-            <th style="width:140px;">Status Planilha</th>
-            <th style="width:170px;">Faltas na Semana</th>
+            <th style="width:150px;">Status Planilha</th>
+            <th style="width:95px; text-align:center;">Faltas</th>
           </tr>
         </thead>
         <tbody id="corpoTabela">
@@ -326,7 +307,6 @@
 <div id="toast" class="toast"></div>
 
 <script>
-  // COLE AQUI A URL DO SEU APP DA WEB (GOOGLE APPS SCRIPT)
   const API_URL = 'https://script.google.com/macros/s/AKfycby-FhVcrxvAF9pbFxxFMpKBQzW7gZAtKtURjRW-H4jlX2RtDOG6vOWN736MwGOF-hQo5w/exec';
 
   let estado = { turmas: [], alunos: [], faltantes: [] };
@@ -348,11 +328,6 @@
 
   async function carregarDados() {
     const tbody = document.getElementById('corpoTabela');
-    if (API_URL.includes('COLE_AQUI')) {
-      tbody.innerHTML = '<tr><td colspan="4" class="empty">Configure a constante <strong>API_URL</strong> no código com o link do Apps Script.</td></tr>';
-      return;
-    }
-
     try {
       const res = await fetch(API_URL + '?action=getDados');
       const data = await res.json();
@@ -415,6 +390,7 @@
       const chave = `${a.turma}|${a.nome}`;
       const valorSelecionado = selecoes[chave] ? String(selecoes[chave].faltas) : '';
       const jaNaPlanilha = mapaJaSalvos[a.nome.toUpperCase()];
+      const nomeEscapado = a.nome.replace(/"/g, '&quot;');
 
       return `
         <tr class="${valorSelecionado ? 'marcado' : ''}">
@@ -422,19 +398,20 @@
           <td><strong>${a.nome}</strong></td>
           <td>
             ${jaNaPlanilha
-              ? `<span class="badge badge-ok">Já salvo (${jaNaPlanilha} faltas)</span>`
+              ? `<span class="badge badge-ok">Já salvo (${jaNaPlanilha})</span>`
               : `<span class="badge">Sem registro</span>`}
           </td>
-          <td>
+          <td style="text-align:center;">
             <select
               class="select-falta ${valorSelecionado ? 'com-falta' : ''}"
               data-turma="${a.turma}"
-              data-nome="${a.nome.replace(/"/g, '&quot;')}"
+              data-nome="${nomeEscapado}"
               onchange="alterarFalta(this)">
-              <option value="">— Selecionar faltas —</option>
-              <option value="3" ${valorSelecionado === '3' ? 'selected' : ''}>3 faltas</option>
-              <option value="4" ${valorSelecionado === '4' ? 'selected' : ''}>4 faltas</option>
-              <option value="5" ${valorSelecionado === '5' ? 'selected' : ''}>5 faltas</option>
+              <option value="">—</option>
+              <option value="2" ${valorSelecionado === '2' ? 'selected' : ''}>2</option>
+              <option value="3" ${valorSelecionado === '3' ? 'selected' : ''}>3</option>
+              <option value="4" ${valorSelecionado === '4' ? 'selected' : ''}>4</option>
+              <option value="5" ${valorSelecionado === '5' ? 'selected' : ''}>5</option>
             </select>
           </td>
         </tr>
