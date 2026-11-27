@@ -44,7 +44,7 @@ function doGet(e) {
 }
 
 /**
- * POST: Salva faltas da semana, registra envio de WhatsApp, limpa semana ou atualiza telefone
+ * POST: Salva faltas, registra envio de WhatsApp, registra atestado, limpa semana ou atualiza telefone
  */
 function doPost(e) {
   try {
@@ -58,6 +58,10 @@ function doPost(e) {
       case 'registrarEnvio':
         registrarEnvioWhatsApp(payload);
         return respostaJSON({ status: 'ok', mensagem: 'Envio registrado com sucesso.' });
+
+      case 'registrarAtestado':
+        registrarAtestadoAluno(payload);
+        return respostaJSON({ status: 'ok', mensagem: 'Atestado marcado com "x" na planilha.' });
 
       case 'atualizarTelefone':
         atualizarContatoBancoEFaltantes(payload);
@@ -96,9 +100,7 @@ function carregarTudo() {
 }
 
 /**
- * Lê a aba "Banco de Dados" respeitando o cabeçalho de 25 colunas (A até Y)
- * 0:TURMA | 3:Nº | 4:Nome do Aluno | 5:RA | 12:Situação | 14:Condições especiais
- * 16:NÚMERO DE FALTAS | 17-18:Par1 | 19-20:Par2 | 21-22:Par3 | 23-24:Par4
+ * Lê a aba "Banco de Dados" (colunas A até Y)
  */
 function lerBancoDeDados(ss) {
   ss = ss || obterPlanilha();
@@ -114,7 +116,6 @@ function lerBancoDeDados(ss) {
     const turma = limparTexto(l[0]).toUpperCase();
     const nome = limparTexto(l[4]);
 
-    // Ignora linhas em branco e cabeçalhos repetidos
     if (!regexTurma.test(turma) || !nome || nome.toUpperCase() === 'NOME DO ALUNO') {
       continue;
     }
@@ -142,10 +143,9 @@ function lerBancoDeDados(ss) {
 }
 
 /**
- * Lê a aba "FALTANTES" (a partir da linha 3)
- * Colunas: A:Turma | B:Nome | C:Tipo1 | D:Tel1 | E:Faltas | F:Msg1
- *          G:Tipo2 | H:Tel2 | I:Msg2 | J:Tipo3 | K:Tel3 | L:Msg3
- *          M:Tipo4 | N:Tel4 | O:Msg4/BuscaAtiva | P:Data Registro
+ * Lê a aba "FALTANTES" (a partir da linha 3, colunas A até Q)
+ * Coluna P (índice 15): DATA REGISTRO
+ * Coluna Q (índice 16): atestado ("x")
  */
 function lerAbaFaltantes(ss, alunosBanco) {
   ss = ss || obterPlanilha();
@@ -155,9 +155,8 @@ function lerAbaFaltantes(ss, alunosBanco) {
   if (!sheet || sheet.getLastRow() < 3) return [];
 
   const ultimaLinha = sheet.getLastRow();
-  const valores = sheet.getRange(3, 1, ultimaLinha - 2, 16).getDisplayValues();
+  const valores = sheet.getRange(3, 1, ultimaLinha - 2, 17).getDisplayValues();
 
-  // Mapa rápido para cruzar com o Banco de Dados (caso falte turma ou telefone na aba FALTANTES)
   const mapaBanco = {};
   alunosBanco.forEach(a => {
     mapaBanco[normalizarChave(a.nome)] = a;
@@ -174,6 +173,7 @@ function lerAbaFaltantes(ss, alunosBanco) {
     const turma = limparTexto(l[0]).toUpperCase() || (alunoRef ? alunoRef.turma : 'SEM TURMA');
     const faltas = parseInt(limparTexto(l[4]), 10) || 0;
     const dataRegistro = limparTexto(l[15]);
+    const atestado = limparTexto(l[16]).toLowerCase() === 'x';
 
     const contatosFaltantes = extrairContatos([
       { slot: 1, tipo: l[2], tel: l[3], statusEnvio: limparTexto(l[5]) },
@@ -182,7 +182,6 @@ function lerAbaFaltantes(ss, alunosBanco) {
       { slot: 4, tipo: l[12], tel: l[13], statusEnvio: limparTexto(l[14]) }
     ]);
 
-    // Se não houver contatos na linha de FALTANTES, tenta aproveitar do Banco de Dados
     const contatosFinais = contatosFaltantes.length > 0
       ? contatosFaltantes
       : (alunoRef ? alunoRef.contatos : []);
@@ -195,6 +194,7 @@ function lerAbaFaltantes(ss, alunosBanco) {
       ra: alunoRef ? alunoRef.ra : '',
       faltas: faltas,
       dataRegistro: dataRegistro,
+      atestado: atestado,
       contatos: contatosFinais
     });
   }
@@ -203,9 +203,21 @@ function lerAbaFaltantes(ss, alunosBanco) {
 }
 
 /**
+ * Garante o cabeçalho "atestado" na coluna Q (linha 2) da aba FALTANTES
+ */
+function garantirCabecalhoAtestado(sheetFaltantes) {
+  const celulaCabecalho = sheetFaltantes.getRange(2, 17);
+  if (!limparTexto(celulaCabecalho.getValue())) {
+    celulaCabecalho.setValue('atestado').setFontWeight('bold');
+  }
+}
+
+/**
  * Salva os registros enviados pelo lançamento de faltas na aba FALTANTES
  */
 function salvarFaltasNaAbaFaltantes(payload) {
+  if (!payload) return 0;
+
   const ss = obterPlanilha();
   let sheetFaltantes = ss.getSheetByName(CONFIG.ABA_FALTANTES);
 
@@ -215,8 +227,10 @@ function salvarFaltasNaAbaFaltantes(payload) {
     sheetFaltantes.appendRow([
       'TURMA', 'NOME DE ALUNO', 'TIPO', 'TELEFONE 1', 'Faltas', 'MENSAGEM',
       'TIPO', 'TELEFONE 2', 'MENSAGEM', 'TIPO', 'TELEFONE 3', 'MENSAGEM',
-      'TIPO', 'TELEFONE 4', 'BUSCA ATIVA', 'DATA REGISTRO'
+      'TIPO', 'TELEFONE 4', 'BUSCA ATIVA', 'DATA REGISTRO', 'atestado'
     ]);
+  } else {
+    garantirCabecalhoAtestado(sheetFaltantes);
   }
 
   const registros = payload.registros || [];
@@ -224,7 +238,6 @@ function salvarFaltasNaAbaFaltantes(payload) {
 
   if (registros.length === 0) return 0;
 
-  // Busca dados completos (parentescos e telefones) no Banco de Dados
   const alunosBanco = lerBancoDeDados(ss);
   const mapaBanco = {};
   alunosBanco.forEach(a => {
@@ -232,15 +245,18 @@ function salvarFaltasNaAbaFaltantes(payload) {
     mapaBanco[normalizarChave(a.nome)] = a;
   });
 
-  // Mapeia alunos já existentes na aba FALTANTES para atualizar sem duplicar
+  // Mapeia alunos já existentes na aba FALTANTES (e preserva marcação de atestado se já existir)
   const existentes = {};
   const ultimaLinha = sheetFaltantes.getLastRow();
   if (ultimaLinha >= 3) {
-    const dadosAtuais = sheetFaltantes.getRange(3, 1, ultimaLinha - 2, 2).getDisplayValues();
+    const dadosAtuais = sheetFaltantes.getRange(3, 1, ultimaLinha - 2, 17).getDisplayValues();
     for (let i = 0; i < dadosAtuais.length; i++) {
       const nomeExist = limparTexto(dadosAtuais[i][1]);
       if (nomeExist) {
-        existentes[normalizarChave(nomeExist)] = i + 3;
+        existentes[normalizarChave(nomeExist)] = {
+          linha: i + 3,
+          atestado: limparTexto(dadosAtuais[i][16])
+        };
       }
     }
   }
@@ -252,13 +268,16 @@ function salvarFaltasNaAbaFaltantes(payload) {
     const turma = limparTexto(reg.turma).toUpperCase();
     const faltas = parseInt(reg.faltas, 10);
 
-    if (!nomeCompleto || ![3, 4, 5].includes(faltas)) return;
+    if (!nomeCompleto || ![2, 3, 4, 5].includes(faltas)) return;
 
     const info = mapaBanco[normalizarChave(turma + '|' + nomeCompleto)] || mapaBanco[normalizarChave(nomeCompleto)];
     const c = info ? info.contatos : [];
 
     const getC = (idx) => c[idx] || { tipo: '', telefoneOriginal: '' };
     const c1 = getC(0), c2 = getC(1), c3 = getC(2), c4 = getC(3);
+
+    const chaveNome = normalizarChave(nomeCompleto);
+    const atestadoAtual = existentes[chaveNome] ? existentes[chaveNome].atestado : '';
 
     const novaLinha = [
       turma,
@@ -276,16 +295,16 @@ function salvarFaltasNaAbaFaltantes(payload) {
       c4.tipo,
       c4.telefoneOriginal,
       c4.telefoneOriginal ? 'ENVIAR' : '',
-      dataRegistro
+      dataRegistro,
+      atestadoAtual
     ];
 
-    const chaveNome = normalizarChave(nomeCompleto);
     if (existentes[chaveNome]) {
-      sheetFaltantes.getRange(existentes[chaveNome], 1, 1, 16).setValues([novaLinha]);
+      sheetFaltantes.getRange(existentes[chaveNome].linha, 1, 1, 17).setValues([novaLinha]);
     } else {
       const proxLinha = Math.max(3, sheetFaltantes.getLastRow() + 1);
-      sheetFaltantes.getRange(proxLinha, 1, 1, 16).setValues([novaLinha]);
-      existentes[chaveNome] = proxLinha;
+      sheetFaltantes.getRange(proxLinha, 1, 1, 17).setValues([novaLinha]);
+      existentes[chaveNome] = { linha: proxLinha, atestado: '' };
     }
 
     salvos++;
@@ -295,24 +314,62 @@ function salvarFaltasNaAbaFaltantes(payload) {
 }
 
 /**
+ * Marca "x" na coluna "atestado" (Coluna Q) da aba FALTANTES e registra no Histórico sem enviar WhatsApp
+ */
+function registrarAtestadoAluno(dados) {
+  if (!dados) return;
+
+  const ss = obterPlanilha();
+  const sheetFaltantes = ss.getSheetByName(CONFIG.ABA_FALTANTES);
+  const linha = parseInt(dados.linhaFaltantes, 10);
+
+  if (sheetFaltantes && linha >= 3) {
+    garantirCabecalhoAtestado(sheetFaltantes);
+    sheetFaltantes.getRange(linha, 17).setValue('x'); // Coluna Q = atestado
+  }
+
+  // Registra também no Histórico que o aluno faltou e apresentou atestado
+  let sheetHist = ss.getSheetByName(CONFIG.ABA_HISTORICO);
+  if (!sheetHist) {
+    sheetHist = ss.insertSheet(CONFIG.ABA_HISTORICO);
+    sheetHist.appendRow([
+      'Data/Hora', 'Turma', 'Nome do Aluno', 'Faltas',
+      'Parentesco', 'Telefone', 'Mensagem'
+    ]);
+    sheetHist.getRange(1, 1, 1, 7).setFontWeight('bold').setBackground('#e2e8f0');
+  }
+
+  const agora = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss');
+  sheetHist.appendRow([
+    agora,
+    dados.turma || '',
+    dados.aluno || '',
+    dados.faltas || '',
+    'ATESTADO',
+    '—',
+    'Apresentou atestado (sem envio de mensagem)'
+  ]);
+}
+
+/**
  * Marca o status de envio na aba FALTANTES e grava na aba Historico_Envios
  */
 function registrarEnvioWhatsApp(dados) {
+  if (!dados) return;
+
   const ss = obterPlanilha();
   const agora = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm:ss');
   const agoraCurto = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM HH:mm');
 
-  // 1. Atualiza status na coluna correspondente da aba FALTANTES
   const sheetFaltantes = ss.getSheetByName(CONFIG.ABA_FALTANTES);
   const linha = parseInt(dados.linhaFaltantes, 10);
   const slot = parseInt(dados.slot, 10);
 
   if (sheetFaltantes && linha >= 3 && slot >= 1 && slot <= 4) {
-    const colStatusPorSlot = { 1: 6, 2: 9, 3: 12, 4: 15 }; // Cols F, I, L, O
+    const colStatusPorSlot = { 1: 6, 2: 9, 3: 12, 4: 15 };
     sheetFaltantes.getRange(linha, colStatusPorSlot[slot]).setValue('ENVIADO (' + agoraCurto + ')');
   }
 
-  // 2. Registra no Histórico
   let sheetHist = ss.getSheetByName(CONFIG.ABA_HISTORICO);
   if (!sheetHist) {
     sheetHist = ss.insertSheet(CONFIG.ABA_HISTORICO);
@@ -338,6 +395,8 @@ function registrarEnvioWhatsApp(dados) {
  * Atualiza o Telefone 1 no Banco de Dados e na linha correspondente de FALTANTES
  */
 function atualizarContatoBancoEFaltantes(dados) {
+  if (!dados) return;
+
   const ss = obterPlanilha();
   const tipo = limparTexto(dados.tipoContato) || 'Responsável';
   const tel = String(dados.telefone || '').replace(/\D/g, '');
@@ -345,16 +404,16 @@ function atualizarContatoBancoEFaltantes(dados) {
   const linhaBanco = parseInt(dados.linhaBanco, 10);
   if (linhaBanco >= 2) {
     const sheetBanco = ss.getSheetByName(CONFIG.ABA_BANCO);
-    sheetBanco.getRange(linhaBanco, 18).setValue(tipo); // Col R
-    sheetBanco.getRange(linhaBanco, 19).setValue(tel);  // Col S
+    sheetBanco.getRange(linhaBanco, 18).setValue(tipo);
+    sheetBanco.getRange(linhaBanco, 19).setValue(tel);
   }
 
   const linhaFaltantes = parseInt(dados.linhaFaltantes, 10);
   if (linhaFaltantes >= 3) {
     const sheetFaltantes = ss.getSheetByName(CONFIG.ABA_FALTANTES);
-    sheetFaltantes.getRange(linhaFaltantes, 3).setValue(tipo);     // Col C
-    sheetFaltantes.getRange(linhaFaltantes, 4).setValue(tel);      // Col D
-    sheetFaltantes.getRange(linhaFaltantes, 6).setValue('ENVIAR'); // Col F
+    sheetFaltantes.getRange(linhaFaltantes, 3).setValue(tipo);
+    sheetFaltantes.getRange(linhaFaltantes, 4).setValue(tel);
+    sheetFaltantes.getRange(linhaFaltantes, 6).setValue('ENVIAR');
   }
 }
 
@@ -365,7 +424,7 @@ function limparAbaFaltantes() {
   const ss = obterPlanilha();
   const sheet = ss.getSheetByName(CONFIG.ABA_FALTANTES);
   if (!sheet || sheet.getLastRow() < 3) return;
-  sheet.getRange(3, 1, sheet.getLastRow() - 2, 16).clearContent();
+  sheet.getRange(3, 1, sheet.getLastRow() - 2, 17).clearContent();
 }
 
 /**
