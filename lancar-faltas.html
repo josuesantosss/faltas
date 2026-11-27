@@ -301,7 +301,7 @@
           </tr>
         </thead>
         <tbody id="corpoTabela">
-          <tr><td colspan="3" class="empty"><span class="ampulheta">⏳</span> Carregando dados da planilha...</td></tr>
+          <tr><td colspan="3" class="empty"><span class="ampulheta">⏳</span> Carregando dados...</td></tr>
         </tbody>
       </table>
     </div>
@@ -315,7 +315,7 @@
     </div>
     <div class="save-actions">
       <button class="btn btn-outline" onclick="limparSelecaoLocal()">Limpar</button>
-      <button class="btn btn-primary" id="btnSalvar" onclick="salvarFaltas()" disabled>Salvar na Planilha</button>
+      <button class="btn btn-primary" id="btnSalvar" onclick="salvarFaltas()" disabled>💾 SALVAR</button>
     </div>
   </div>
 </div>
@@ -344,7 +344,7 @@
 
   async function carregarDados() {
     const tbody = document.getElementById('corpoTabela');
-    tbody.innerHTML = '<tr><td colspan="3" class="empty"><span class="ampulheta">⏳</span> Carregando dados da planilha...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" class="empty"><span class="ampulheta">⏳</span> Carregando dados...</td></tr>';
 
     try {
       const res = await fetch(API_URL + '?action=getDados');
@@ -485,7 +485,7 @@
     } catch (err) {
       alert('Erro ao salvar faltas: ' + err.message);
     } finally {
-      btn.textContent = 'Salvar na Planilha';
+      btn.textContent = '💾 SALVAR';
       atualizarBarraSalvar();
     }
   }
