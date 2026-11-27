@@ -147,7 +147,6 @@
       animation: girarAmpulheta 1.2s linear infinite;
     }
 
-    /* Barra inferior alinhada aos 720px no desktop */
     .save-bar {
       position: fixed;
       bottom: 0; left: 0; right: 0;
@@ -267,7 +266,7 @@
 <header>
   <div>
     <h1>Lançamento de Faltas da Semana</h1>
-    <p>Selecione a turma e indique os alunos com 2, 3, 4 ou 5 faltas para registrar na aba FALTANTES</p>
+    <p>Selecione a turma:</p>
   </div>
   <div class="header-actions">
     <div class="date-box" id="boxDataHoje">📅 Carregando data...</div>
@@ -302,7 +301,7 @@
           </tr>
         </thead>
         <tbody id="corpoTabela">
-          <tr><td colspan="3" class="empty">Carregando dados da planilha...</td></tr>
+          <tr><td colspan="3" class="empty"><span class="ampulheta">⏳</span> Carregando dados da planilha...</td></tr>
         </tbody>
       </table>
     </div>
@@ -345,6 +344,8 @@
 
   async function carregarDados() {
     const tbody = document.getElementById('corpoTabela');
+    tbody.innerHTML = '<tr><td colspan="3" class="empty"><span class="ampulheta">⏳</span> Carregando dados da planilha...</td></tr>';
+
     try {
       const res = await fetch(API_URL + '?action=getDados');
       const data = await res.json();
