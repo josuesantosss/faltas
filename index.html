@@ -15,6 +15,9 @@
       --primary-hover: #115e59;
       --whats: #16a34a;
       --whats-hover: #15803d;
+      --info: #2563eb;
+      --info-hover: #1d4ed8;
+      --info-bg: #dbeafe;
       --warn: #d97706;
       --warn-bg: #fef3c7;
       --danger: #dc2626;
@@ -103,6 +106,10 @@
       flex-direction: column;
       gap: 12px;
     }
+    .student-card.com-atestado {
+      border-left: 5px solid var(--info);
+      background: #f8fbff;
+    }
     .student-header {
       display: flex;
       flex-wrap: wrap;
@@ -113,11 +120,13 @@
       padding-bottom: 10px;
     }
     .student-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .student-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
     .badge { font-size: 0.75rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #e2e8f0; }
     .badge-turma { background: var(--primary); color: #fff; }
     .badge-falta { background: var(--danger-bg); color: var(--danger); }
     .badge-enviado { background: #dcfce7; color: #166534; }
+    .badge-atestado { background: var(--info-bg); color: var(--info); }
     .badge-fixo { background: var(--warn-bg); color: var(--warn); }
 
     .msg-preview {
@@ -162,6 +171,9 @@
     .btn-whats { background: var(--whats); color: #fff; width: 100%; }
     .btn-whats:hover { background: var(--whats-hover); }
     .btn-whats.enviado { background: #64748b; }
+    .btn-atestado { background: var(--info); color: #fff; }
+    .btn-atestado:hover { background: var(--info-hover); }
+    .btn-atestado.registrado { background: var(--info-bg); color: var(--info); cursor: default; }
     .btn-white { background: #fff; color: var(--primary); }
     .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
     .btn-danger-outline { background: #fff; border: 1px solid #fecaca; color: var(--danger); }
@@ -206,26 +218,23 @@
 
       .container { margin: 12px auto; padding: 0 12px; }
 
-      /* Resumo compacto 2x2 */
       .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
       .stat-card { padding: 11px 12px; }
       .stat-card span { font-size: 0.7rem; }
       .stat-card strong { font-size: 1.35rem; }
 
-      /* Abas e botão de limpar semana */
       .tabs { flex-direction: column; align-items: stretch; gap: 8px; }
       .tab-group { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
       .tab-btn { min-height: 42px; text-align: center; padding: 8px 10px; font-size: 0.86rem; }
       .btn-danger-outline { width: 100%; min-height: 42px; }
 
-      /* Filtros com fonte 16px para evitar zoom no iOS */
       .filters { grid-template-columns: 1fr; padding: 12px; gap: 10px; }
       .field input, .field select { font-size: 16px; min-height: 44px; }
 
-      /* Cards de alunos e contatos */
       .student-card { padding: 12px; gap: 10px; }
       .student-header { flex-direction: column; align-items: flex-start; gap: 8px; }
-      .student-header .btn { width: 100%; min-height: 40px; }
+      .student-header-actions { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+      .student-header-actions .btn { min-height: 42px; }
 
       .msg-preview { font-size: 0.82rem; padding: 10px 12px; }
 
@@ -233,7 +242,6 @@
       .contact-box { padding: 12px; }
       .btn-whats { min-height: 46px; font-size: 0.92rem; }
 
-      /* Histórico em formato de cards no celular */
       .table-wrap { background: transparent; border: none; }
       .table-wrap table, .table-wrap thead, .table-wrap tbody, .table-wrap tr, .table-wrap td {
         display: block; width: 100%;
@@ -246,13 +254,8 @@
         padding: 12px;
         margin-bottom: 10px;
       }
-      .table-wrap tbody td {
-        padding: 3px 0;
-        border: none;
-        font-size: 0.86rem;
-      }
+      .table-wrap tbody td { padding: 3px 0; border: none; font-size: 0.86rem; }
 
-      /* Modal adaptado para celular */
       .modal { padding: 18px; }
       .modal .btn { flex: 1; min-height: 44px; }
 
@@ -276,9 +279,9 @@
 <div class="container">
   <div class="stats">
     <div class="stat-card"><span>Faltantes na Semana</span><strong id="statTotal" style="color:var(--danger)">—</strong></div>
-    <div class="stat-card"><span>Pendentes de Envio</span><strong id="statPendentes" style="color:var(--warn)">—</strong></div>
-    <div class="stat-card"><span>Já Notificados</span><strong id="statEnviados" style="color:var(--whats)">—</strong></div>
-    <div class="stat-card"><span>Sem Telefone</span><strong id="statSemTel">—</strong></div>
+    <div class="stat-card"><span>Pendentes</span><strong id="statPendentes" style="color:var(--warn)">—</strong></div>
+    <div class="stat-card"><span>Notificados</span><strong id="statEnviados" style="color:var(--whats)">—</strong></div>
+    <div class="stat-card"><span>Com Atestado</span><strong id="statAtestado" style="color:var(--info)">—</strong></div>
   </div>
 
   <div class="tabs">
@@ -302,11 +305,12 @@
         <input type="text" id="filtroBusca" placeholder="Digite o nome do aluno..." oninput="renderizarFaltantes()" />
       </div>
       <div class="field">
-        <label for="filtroStatus">Status de Envio</label>
+        <label for="filtroStatus">Status</label>
         <select id="filtroStatus" onchange="renderizarFaltantes()">
           <option value="">Todos</option>
           <option value="PENDENTE">Somente Pendentes</option>
-          <option value="ENVIADO">Somente Enviados</option>
+          <option value="ENVIADO">Somente Notificados</option>
+          <option value="ATESTADO">Com Atestado</option>
           <option value="SEM_TEL">Sem Telefone</option>
         </select>
       </div>
@@ -326,12 +330,12 @@
             <th>Turma</th>
             <th>Aluno</th>
             <th>Faltas</th>
-            <th>Parentesco</th>
+            <th>Tipo / Parentesco</th>
             <th>Telefone</th>
           </tr>
         </thead>
         <tbody id="tabelaHistorico">
-          <tr><td colspan="6" style="text-align:center;color:var(--muted);">Nenhum envio registrado ainda.</td></tr>
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);">Nenhum registro ainda.</td></tr>
         </tbody>
       </table>
     </div>
@@ -362,7 +366,6 @@
 <div id="toast" class="toast"></div>
 
 <script>
-  // COLE AQUI A URL DO SEU APP DA WEB (GOOGLE APPS SCRIPT)
   const API_URL = 'https://script.google.com/macros/s/AKfycby-FhVcrxvAF9pbFxxFMpKBQzW7gZAtKtURjRW-H4jlX2RtDOG6vOWN736MwGOF-hQo5w/exec';
 
   let estado = { turmas: [], alunos: [], faltantes: [], historico: [] };
@@ -388,11 +391,6 @@
   async function carregarDados() {
     const container = document.getElementById('listaFaltantes');
     container.innerHTML = '<div class="empty-state">Sincronizando com o Google Planilhas...</div>';
-
-    if (API_URL.includes('COLE_AQUI')) {
-      container.innerHTML = '<div class="empty-state">Configure a constante <strong>API_URL</strong> no arquivo index.html com o link do seu Apps Script.</div>';
-      return;
-    }
 
     try {
       const res = await fetch(API_URL + '?action=getDados');
@@ -428,14 +426,14 @@
 
   function atualizarEstatisticas() {
     const total = estado.faltantes.length;
-    const enviados = estado.faltantes.filter(alunoFoiNotificado).length;
-    const semTel = estado.faltantes.filter(f => f.contatos.length === 0).length;
-    const pendentes = total - enviados;
+    const comAtestado = estado.faltantes.filter(f => f.atestado).length;
+    const enviados = estado.faltantes.filter(f => !f.atestado && alunoFoiNotificado(f)).length;
+    const pendentes = estado.faltantes.filter(f => !f.atestado && !alunoFoiNotificado(f)).length;
 
     document.getElementById('statTotal').textContent = total;
     document.getElementById('statPendentes').textContent = pendentes;
     document.getElementById('statEnviados').textContent = enviados;
-    document.getElementById('statSemTel').textContent = semTel;
+    document.getElementById('statAtestado').textContent = comAtestado;
   }
 
   function renderizarFaltantes() {
@@ -446,8 +444,9 @@
     const filtrados = estado.faltantes.filter(f => {
       if (turma && f.turma !== turma) return false;
       if (busca && !f.nome.toLowerCase().includes(busca)) return false;
-      if (status === 'PENDENTE' && alunoFoiNotificado(f)) return false;
+      if (status === 'PENDENTE' && (alunoFoiNotificado(f) || f.atestado)) return false;
       if (status === 'ENVIADO' && !alunoFoiNotificado(f)) return false;
+      if (status === 'ATESTADO' && !f.atestado) return false;
       if (status === 'SEM_TEL' && f.contatos.length > 0) return false;
       return true;
     });
@@ -488,24 +487,76 @@
            </div>`;
 
       return `
-        <div class="student-card">
+        <div class="student-card ${f.atestado ? 'com-atestado' : ''}">
           <div class="student-header">
             <div class="student-title">
               <span class="badge badge-turma">${f.turma}</span>
               <strong>${f.nome}</strong>
-              <span class="badge badge-falta">${f.faltas} faltas na semana</span>
+              <span class="badge badge-falta">${f.faltas} faltas</span>
               ${f.dataRegistro ? `<span class="badge">📅 ${f.dataRegistro}</span>` : ''}
+              ${f.atestado ? `<span class="badge badge-atestado">✓ Atestado (x)</span>` : ''}
               ${jaEnviadoGeral ? `<span class="badge badge-enviado">Notificado</span>` : ''}
             </div>
-            <button class="btn btn-outline" style="font-size:0.78rem;" onclick="abrirModal(${f.linhaBanco || 0}, ${f.linhaFaltantes})">Editar Tel 1</button>
+            <div class="student-header-actions">
+              <button
+                class="btn btn-atestado ${f.atestado ? 'registrado' : ''}"
+                onclick="marcarAtestado(${f.linhaFaltantes})"
+                ${f.atestado ? 'disabled' : ''}>
+                ${f.atestado ? '✓ Atestado Registrado' : 'Apresentou Atestado'}
+              </button>
+              <button class="btn btn-outline" style="font-size:0.78rem;" onclick="abrirModal(${f.linhaBanco || 0}, ${f.linhaFaltantes})">Editar Tel 1</button>
+            </div>
           </div>
 
-          <div class="msg-preview">${mensagem}</div>
-
-          <div class="contacts-grid">${contatosHtml}</div>
+          ${f.atestado ? '' : `<div class="msg-preview">${mensagem}</div><div class="contacts-grid">${contatosHtml}</div>`}
         </div>
       `;
     }).join('');
+  }
+
+  async function marcarAtestado(linhaFaltantes) {
+    const aluno = estado.faltantes.find(f => f.linhaFaltantes === linhaFaltantes);
+    if (!aluno || aluno.atestado) return;
+
+    const ok = confirm(`Confirmar que ${aluno.nome} apresentou atestado?\n\nNenhuma mensagem será enviada e será marcado "x" na coluna atestado da planilha.`);
+    if (!ok) return;
+
+    // Atualiza visualmente imediatamente
+    aluno.atestado = true;
+    atualizarEstatisticas();
+    renderizarFaltantes();
+
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'registrarAtestado',
+          linhaFaltantes: aluno.linhaFaltantes,
+          turma: aluno.turma,
+          aluno: aluno.nome,
+          faltas: aluno.faltas
+        })
+      });
+      const data = await res.json();
+      if (data.status !== 'ok') throw new Error(data.mensagem);
+
+      mostrarToast(`Atestado registrado para ${aluno.nome}.`);
+      estado.historico.unshift({
+        dataHora: new Date().toLocaleString('pt-BR'),
+        turma: aluno.turma,
+        aluno: aluno.nome,
+        faltas: aluno.faltas,
+        contatoTipo: 'ATESTADO',
+        telefone: '—'
+      });
+      renderizarHistorico();
+    } catch (err) {
+      aluno.atestado = false;
+      atualizarEstatisticas();
+      renderizarFaltantes();
+      alert('Erro ao registrar atestado: ' + err.message);
+    }
   }
 
   function dispararWhats(linhaFaltantes, slot) {
@@ -557,7 +608,7 @@
   function renderizarHistorico() {
     const tbody = document.getElementById('tabelaHistorico');
     if (!estado.historico.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);">Nenhum envio registrado ainda.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);">Nenhum registro ainda.</td></tr>';
       return;
     }
     tbody.innerHTML = estado.historico.map(h => `
@@ -565,8 +616,8 @@
         <td>${h.dataHora}</td>
         <td><strong>${h.turma}</strong></td>
         <td>${h.aluno}</td>
-        <td><span class="badge badge-falta">${h.faltas} faltas</span></td>
-        <td>${h.contatoTipo}</td>
+        <td><span class="badge badge-falta">${h.faltas}</span></td>
+        <td>${h.contatoTipo === 'ATESTADO' ? '<span class="badge badge-atestado">ATESTADO</span>' : h.contatoTipo}</td>
         <td>${h.telefone}</td>
       </tr>
     `).join('');
