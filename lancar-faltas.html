@@ -99,6 +99,7 @@
     th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; }
     th { background: #f8fafc; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; }
     tbody tr:hover { background: #f8fafc; }
+    tr.salvo, tr.salvo:hover { background: #f0fdf4; }
     tr.marcado, tr.marcado:hover { background: #fef3c7; }
 
     .select-falta {
@@ -115,6 +116,11 @@
       border-color: var(--danger);
       color: var(--danger);
       background: #fff5f5;
+    }
+    .select-falta.ja-salvo {
+      border-color: #16a34a;
+      color: #15803d;
+      background: #dcfce7;
     }
 
     .btn {
@@ -136,7 +142,6 @@
     .btn-white { background: #fff; color: var(--primary); }
     .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
 
-    /* Animação da ampulheta */
     @keyframes girarAmpulheta {
       0% { transform: rotate(0deg); }
       50% { transform: rotate(180deg); }
@@ -206,6 +211,10 @@
         grid-template-columns: auto 1fr auto;
         gap: 8px;
         align-items: center;
+      }
+      tbody tr.salvo {
+        background: #f0fdf4;
+        border-color: #86efac;
       }
       tbody tr.marcado {
         background: #fef3c7;
@@ -342,6 +351,10 @@
     document.getElementById('boxDataHoje').textContent = `📅 ${dataHojeFormatada} (${diaSemanaCap})`;
   }
 
+  function normalizarChave(str) {
+    return String(str || '').trim().toUpperCase();
+  }
+
   async function carregarDados() {
     const tbody = document.getElementById('corpoTabela');
     tbody.innerHTML = '<tr><td colspan="3" class="empty"><span class="ampulheta">⏳</span> Carregando dados...</td></tr>';
@@ -399,26 +412,40 @@
       return;
     }
 
+    // Mapeia quem já tem faltas registradas na aba FALTANTES
+    const mapaJaSalvos = {};
+    (estado.faltantes || []).forEach(f => {
+      if (f.faltas) {
+        mapaJaSalvos[normalizarChave(f.nome)] = String(f.faltas);
+      }
+    });
+
     tbody.innerHTML = alunosTurma.map(a => {
       const chave = `${a.turma}|${a.nome}`;
-      const valorSelecionado = selecoes[chave] ? String(selecoes[chave].faltas) : '';
+      const salvoNaPlanilha = mapaJaSalvos[normalizarChave(a.nome)] || '';
+      const alteradoAgora = selecoes[chave] ? String(selecoes[chave].faltas) : '';
+      const valorExibido = alteradoAgora || salvoNaPlanilha;
+
+      const classeLinha = alteradoAgora ? 'marcado' : (salvoNaPlanilha ? 'salvo' : '');
+      const classeSelect = alteradoAgora ? 'com-falta' : (salvoNaPlanilha ? 'ja-salvo' : '');
       const nomeEscapado = a.nome.replace(/"/g, '&quot;');
 
       return `
-        <tr class="${valorSelecionado ? 'marcado' : ''}">
+        <tr class="${classeLinha}">
           <td>${a.numero}</td>
           <td><strong>${a.nome}</strong></td>
           <td style="text-align:center;">
             <select
-              class="select-falta ${valorSelecionado ? 'com-falta' : ''}"
+              class="select-falta ${classeSelect}"
               data-turma="${a.turma}"
               data-nome="${nomeEscapado}"
+              data-salvo="${salvoNaPlanilha}"
               onchange="alterarFalta(this)">
               <option value="">—</option>
-              <option value="2" ${valorSelecionado === '2' ? 'selected' : ''}>2</option>
-              <option value="3" ${valorSelecionado === '3' ? 'selected' : ''}>3</option>
-              <option value="4" ${valorSelecionado === '4' ? 'selected' : ''}>4</option>
-              <option value="5" ${valorSelecionado === '5' ? 'selected' : ''}>5</option>
+              <option value="2" ${valorExibido === '2' ? 'selected' : ''}>2</option>
+              <option value="3" ${valorExibido === '3' ? 'selected' : ''}>3</option>
+              <option value="4" ${valorExibido === '4' ? 'selected' : ''}>4</option>
+              <option value="5" ${valorExibido === '5' ? 'selected' : ''}>5</option>
             </select>
           </td>
         </tr>
@@ -429,17 +456,24 @@
   function alterarFalta(selectEl) {
     const turma = selectEl.dataset.turma;
     const nome = selectEl.dataset.nome;
+    const salvoOriginal = selectEl.dataset.salvo;
     const faltas = selectEl.value;
     const chave = `${turma}|${nome}`;
+    const tr = selectEl.closest('tr');
 
-    if (faltas) {
+    tr.classList.remove('marcado', 'salvo');
+    selectEl.classList.remove('com-falta', 'ja-salvo');
+
+    if (faltas && faltas !== salvoOriginal) {
       selecoes[chave] = { turma, nome, faltas: Number(faltas) };
       selectEl.classList.add('com-falta');
-      selectEl.closest('tr').classList.add('marcado');
+      tr.classList.add('marcado');
     } else {
       delete selecoes[chave];
-      selectEl.classList.remove('com-falta');
-      selectEl.closest('tr').classList.remove('marcado');
+      if (salvoOriginal && faltas === salvoOriginal) {
+        selectEl.classList.add('ja-salvo');
+        tr.classList.add('salvo');
+      }
     }
 
     atualizarBarraSalvar();
