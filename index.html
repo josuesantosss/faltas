@@ -268,7 +268,7 @@
 <header>
   <div>
     <h1>Busca Ativa Escolar — Disparos WhatsApp</h1>
-    <p>Envio automatizado das faltas semanais registradas na aba FALTANTES</p>
+    <p>Envio automatizado das faltas semanais registradas no Banco de Dados</p>
   </div>
   <div class="header-actions">
     <a href="lancar-faltas.html" class="btn btn-white">+ Lançar Faltas</a>
@@ -289,7 +289,7 @@
       <button class="tab-btn active" onclick="trocarAba('faltantes', this)">Faltantes da Semana</button>
       <button class="tab-btn" onclick="trocarAba('historico', this)">Histórico de Envios</button>
     </div>
-    <button class="btn btn-danger-outline" onclick="confirmarLimparSemana()">Limpar Aba FALTANTES (Nova Semana)</button>
+    <button class="btn btn-danger-outline" onclick="confirmarLimparSemana()">Limpar Alunos Faltantes (Nova Semana)</button>
   </div>
 
   <section id="panel-faltantes" class="panel active">
@@ -662,7 +662,7 @@
   }
 
   async function confirmarLimparSemana() {
-    const ok = confirm('Deseja limpar todos os alunos da aba FALTANTES para iniciar uma nova semana?');
+    const ok = confirm('Deseja limpar todos os alunos faltantes para iniciar uma nova semana?');
     if (!ok) return;
 
     try {
@@ -671,7 +671,7 @@
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'limparFaltantes' })
       });
-      mostrarToast('Aba FALTANTES limpa com sucesso!');
+      mostrarToast('Alunos Faltantes limpa com sucesso!');
       carregarDados();
     } catch (err) {
       alert('Erro ao limpar: ' + err.message);
