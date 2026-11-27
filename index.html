@@ -279,7 +279,7 @@
 <header>
   <div>
     <h1>Busca Ativa Escolar — Disparos WhatsApp</h1>
-    <p>Envio automatizado das faltas semanais registradas na Banco de Dados</p>
+    <p>Envio automatizado das faltas semanais registradas no Banco de Dados</p>
   </div>
   <div class="header-actions">
     <a href="lancar-faltas.html" class="btn btn-white">+ Lançar Faltas</a>
@@ -369,7 +369,7 @@
     </div>
     <div style="display:flex; gap:8px; justify-content:flex-end;">
       <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarTelefone()">SALVAR/button>
+      <button class="btn btn-primary" onclick="salvarTelefone()">SALVAR</button>
     </div>
   </div>
 </div>
@@ -401,7 +401,7 @@
 
   async function carregarDados() {
     const container = document.getElementById('listaFaltantes');
-    container.innerHTML = '<div class="empty-state"><span class="ampulheta">⏳</span> Sincronizando</div>';
+    container.innerHTML = '<div class="empty-state"><span class="ampulheta">⏳</span> Sincronizando...</div>';
 
     try {
       const res = await fetch(API_URL + '?action=getDados');
@@ -529,7 +529,7 @@
     const aluno = estado.faltantes.find(f => f.linhaFaltantes === linhaFaltantes);
     if (!aluno || aluno.atestado) return;
 
-    const ok = confirm(`Confirmar que ${aluno.nome} apresentou atestado?\n\nNenhuma mensagem será enviada.);
+    const ok = confirm(`Confirmar que ${aluno.nome} apresentou atestado?\n\nNenhuma mensagem será enviada.`);
     if (!ok) return;
 
     aluno.atestado = true;
@@ -611,7 +611,7 @@
       });
       renderizarHistorico();
     }).catch(() => {
-      mostrarToast('WhatsApp aberto (não foi possível atualizar a o Banco de Dados).');
+      mostrarToast('WhatsApp aberto (não foi possível atualizar o Banco de Dados).');
     });
   }
 
