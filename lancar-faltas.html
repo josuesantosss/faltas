@@ -48,7 +48,7 @@
       gap: 8px;
     }
 
-    .container { max-width: 1050px; margin: 20px auto; padding: 0 16px; }
+    .container { max-width: 720px; margin: 20px auto; padding: 0 16px; }
 
     .card {
       background: var(--surface);
@@ -96,9 +96,10 @@
     }
 
     table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
-    th, td { padding: 11px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; }
     th { background: #f8fafc; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; }
-    tr.marcado { background: #fef3c7; }
+    tbody tr:hover { background: #f8fafc; }
+    tr.marcado, tr.marcado:hover { background: #fef3c7; }
 
     .select-falta {
       padding: 7px 10px;
@@ -135,18 +136,36 @@
     .btn-white { background: #fff; color: var(--primary); }
     .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
 
+    /* Animação da ampulheta */
+    @keyframes girarAmpulheta {
+      0% { transform: rotate(0deg); }
+      50% { transform: rotate(180deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .ampulheta {
+      display: inline-block;
+      animation: girarAmpulheta 1.2s linear infinite;
+    }
+
+    /* Barra inferior alinhada aos 720px no desktop */
     .save-bar {
       position: fixed;
       bottom: 0; left: 0; right: 0;
       background: #fff;
       border-top: 1px solid var(--border);
-      padding: 14px 24px;
+      padding: 14px 0;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
+      z-index: 50;
+    }
+    .save-bar-inner {
+      max-width: 720px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 12px;
-      box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
-      z-index: 50;
     }
     .save-actions { display: flex; gap: 10px; }
 
@@ -170,7 +189,6 @@
       .container { margin: 12px auto; padding: 0 12px; }
       .card { padding: 12px; margin-bottom: 12px; }
 
-      /* Oculta os botões de turmas apenas no celular */
       .turmas-grid { display: none; }
 
       #selectTurma, .toolbar input { width: 100%; font-size: 16px; min-height: 44px; }
@@ -179,7 +197,6 @@
       table, thead, tbody, tr, td { display: block; width: 100%; }
       thead { display: none; }
 
-      /* Linha compacta: Nº | Nome do aluno | Dropdown à direita */
       tbody tr {
         border: 1px solid var(--border);
         border-radius: 10px;
@@ -197,7 +214,6 @@
       }
       tbody td { padding: 0; border: none; width: auto; }
 
-      /* Coluna 1: Nº da chamada */
       tbody td:nth-child(1) {
         background: #e2e8f0;
         color: var(--text);
@@ -209,7 +225,6 @@
         min-width: 28px;
       }
 
-      /* Coluna 2: Nome do aluno */
       tbody td:nth-child(2) {
         font-size: 0.9rem;
         line-height: 1.25;
@@ -217,7 +232,6 @@
         word-break: break-word;
       }
 
-      /* Coluna 3: Dropdown de faltas à direita */
       tbody td:nth-child(3) {
         text-align: right !important;
       }
@@ -231,9 +245,12 @@
       tbody td.empty { grid-column: 1 / -1; width: 100%; padding: 24px 12px; }
 
       .save-bar {
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      }
+      .save-bar-inner {
+        padding: 0;
         flex-direction: column;
         align-items: stretch;
-        padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
         gap: 8px;
         text-align: center;
         font-size: 0.85rem;
@@ -279,9 +296,9 @@
       <table>
         <thead>
           <tr>
-            <th style="width:60px;">Nº</th>
+            <th style="width:55px;">Nº</th>
             <th>Nome Completo do Aluno</th>
-            <th style="width:95px; text-align:center;">Faltas</th>
+            <th style="width:90px; text-align:center;">Faltas</th>
           </tr>
         </thead>
         <tbody id="corpoTabela">
@@ -293,12 +310,14 @@
 </div>
 
 <div class="save-bar">
-  <div>
-    <strong id="contadorSelecionados">0 aluno(s)</strong> marcado(s) para envio à aba <code>FALTANTES</code>
-  </div>
-  <div class="save-actions">
-    <button class="btn btn-outline" onclick="limparSelecaoLocal()">Limpar</button>
-    <button class="btn btn-primary" id="btnSalvar" onclick="salvarFaltas()" disabled>Salvar na Planilha</button>
+  <div class="save-bar-inner">
+    <div>
+      <strong id="contadorSelecionados">0 aluno(s)</strong> marcado(s) para envio à aba <code>FALTANTES</code>
+    </div>
+    <div class="save-actions">
+      <button class="btn btn-outline" onclick="limparSelecaoLocal()">Limpar</button>
+      <button class="btn btn-primary" id="btnSalvar" onclick="salvarFaltas()" disabled>Salvar na Planilha</button>
+    </div>
   </div>
 </div>
 
@@ -443,7 +462,7 @@
 
     const btn = document.getElementById('btnSalvar');
     btn.disabled = true;
-    btn.textContent = 'Salvando...';
+    btn.innerHTML = '<span class="ampulheta">⏳</span> Salvando...';
 
     try {
       const res = await fetch(API_URL, {
