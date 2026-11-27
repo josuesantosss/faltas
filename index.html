@@ -328,7 +328,7 @@
     </div>
 
     <div id="listaFaltantes" class="list">
-      <div class="empty-state"><span class="ampulheta">⏳</span> Carregando dados da planilha...</div>
+      <div class="empty-state"><span class="ampulheta">⏳</span> Carregando dados...</div>
     </div>
   </section>
 
@@ -369,7 +369,7 @@
     </div>
     <div style="display:flex; gap:8px; justify-content:flex-end;">
       <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarTelefone()">Salvar na Planilha</button>
+      <button class="btn btn-primary" onclick="salvarTelefone()">SALVAR/button>
     </div>
   </div>
 </div>
@@ -401,7 +401,7 @@
 
   async function carregarDados() {
     const container = document.getElementById('listaFaltantes');
-    container.innerHTML = '<div class="empty-state"><span class="ampulheta">⏳</span> Sincronizando com o Google Planilhas...</div>';
+    container.innerHTML = '<div class="empty-state"><span class="ampulheta">⏳</span> Sincronizando</div>';
 
     try {
       const res = await fetch(API_URL + '?action=getDados');
@@ -529,7 +529,7 @@
     const aluno = estado.faltantes.find(f => f.linhaFaltantes === linhaFaltantes);
     if (!aluno || aluno.atestado) return;
 
-    const ok = confirm(`Confirmar que ${aluno.nome} apresentou atestado?\n\nNenhuma mensagem será enviada e será marcado "x" na coluna atestado da planilha.`);
+    const ok = confirm(`Confirmar que ${aluno.nome} apresentou atestado?\n\nNenhuma mensagem será enviada.);
     if (!ok) return;
 
     aluno.atestado = true;
@@ -611,7 +611,7 @@
       });
       renderizarHistorico();
     }).catch(() => {
-      mostrarToast('WhatsApp aberto (não foi possível atualizar a planilha agora).');
+      mostrarToast('WhatsApp aberto (não foi possível atualizar a o Banco de Dados).');
     });
   }
 
@@ -664,7 +664,7 @@
         body: JSON.stringify({ action: 'atualizarTelefone', linhaBanco, linhaFaltantes, tipoContato, telefone })
       });
       fecharModal();
-      mostrarToast('Telefone atualizado na planilha!');
+      mostrarToast('Telefone atualizado no Banco de Dados!');
       carregarDados();
     } catch (err) {
       alert('Erro ao salvar telefone: ' + err.message);
